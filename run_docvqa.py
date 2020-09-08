@@ -191,18 +191,21 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
                 "input_ids": batch[0],
                 "attention_mask": batch[1],
                 "start_positions": batch[3],
-                "end_positions":batch[4],
+                "end_positions": batch[4],
             }
 
             if args.model_type == "layoutlm":
                 inputs["bbox"] = batch[5]
+
             if args.model_type != "distilbert":
                 inputs["token_type_ids"] = (
                     batch[2]
                     if args.model_type in ["bert", "xlnet", "layoutlm"]
                     else None
                 )  # XLM and RoBERTa don"t use segment_ids
+
             outputs = model(**inputs)
+
             loss = outputs[0]
              # model outputs are always tuple in pytorch-transformers (see doc)
 
@@ -283,6 +286,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
                 break
+
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
@@ -292,10 +296,13 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
 
     return global_step, tr_loss / global_step
 
+
 def to_list(tensor):
     return tensor.detach().cpu().tolist()
+
+
 def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""):
-    eval_dataset,features, examples = load_and_cache_examples(
+    eval_dataset, features, examples = load_and_cache_examples(
         args, tokenizer, labels, pad_token_label_id, mode=mode
     )
 
@@ -366,6 +373,7 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
     results = squad_evaluate(examples, predictions)
     return results
 
+
 def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
@@ -379,22 +387,28 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
             str(args.max_seq_length),
         ),
     )
+
+    # Load examples for training and validation
     if mode == 'train':
-        train_examples = read_docvqa_examples(args.train_json,is_training=True,skip_match_answers=args.skip_match_answers)
+        train_examples = read_docvqa_examples(args.train_json, is_training=True, skip_match_answers=args.skip_match_answers)
         logger.info("Loading train json from %s", args.train_json)
+
     else:
-        train_examples = read_docvqa_examples(args.val_json,is_training=True,skip_match_answers=args.skip_match_answers)
+        train_examples = read_docvqa_examples(args.val_json, is_training=True, skip_match_answers=args.skip_match_answers)
         logger.info("Loading val json from %s", args.val_json)
+
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
+
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
         if mode == 'train':
-            train_examples = read_docvqa_examples(args.train_json,is_training=True,skip_match_answers=args.skip_match_answers)
+            train_examples = read_docvqa_examples(args.train_json, is_training=True, skip_match_answers=args.skip_match_answers)
 
         else:
-            train_examples = read_docvqa_examples(args.val_json,is_training=True,skip_match_answers=args.skip_match_answers)
+            train_examples = read_docvqa_examples(args.val_json, is_training=True, skip_match_answers=args.skip_match_answers)
+
         max_query_length = 64
         doc_stride = args.doc_stride
         features = convert_examples_to_features(
@@ -405,8 +419,9 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
             doc_stride=doc_stride,
             max_query_length=max_query_length,
             is_training=True,
-            pad_token_label_id=pad_token_label_id)    
-        print("Features generated",mode)
+            pad_token_label_id=pad_token_label_id)
+
+        print("Features generated", mode)
         if args.local_rank in [-1, 0]:
             logger.info("Saving features into cached file %s", cached_features_file)
             torch.save(features, cached_features_file)
@@ -424,7 +439,8 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
     all_p_mask = torch.tensor([f.p_mask for f in features], dtype=torch.long)
     all_example_index = torch.arange(all_input_ids.size(0), dtype=torch.long)
     dataset = TensorDataset(
-        all_input_ids, all_input_mask, all_segment_ids, all_start_positions, all_end_positions, all_bboxes, all_p_mask,all_example_index
+        all_input_ids, all_input_mask, all_segment_ids, all_start_positions, all_end_positions, all_bboxes, all_p_mask,
+        all_example_index
     )
     return dataset, features, train_examples
 
@@ -663,17 +679,22 @@ def main():
         )
         torch.cuda.set_device(device)
         args.n_gpu = torch.cuda.device_count()
+
     else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
         torch.distributed.init_process_group(backend="nccl")
         args.n_gpu = 1
+
     args.device = device
 
+    # OUTPUT Dir
     if args.overwrite_output_dir and os.path.exists(args.output_dir):
         shutil.rmtree(args.output_dir)
+
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+
     # Setup logging
     logging.basicConfig(
         filename=os.path.join(args.output_dir, "train.log"),
@@ -681,6 +702,7 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN,
     )
+
     logger.warning(
         "Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
         args.local_rank,
@@ -694,8 +716,9 @@ def main():
     set_seed(args)
 
     # Prepare CONLL-2003 task
-    labels = ["start","end"]
+    labels = ["start", "end"]
     num_labels = len(labels)
+
     # Use cross entropy ignore index as padding label id so that only real label ids contribute to the loss later
     pad_token_label_id = CrossEntropyLoss().ignore_index
 
@@ -704,20 +727,27 @@ def main():
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
     args.model_type = args.model_type.lower()
-    print("ARGS",args)
+    print("ARGS", args)
+
+    # Load configuration, Model and Tokenizer Class
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    print("Config_name",args.config_name)
-    
+    print("Config_name", args.config_name)
+
+    # Initialize configuration
     config = config_class.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
         num_labels=num_labels,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
+
+    # Initialize BERT tokenizer
     tokenizer = tokenizer_class.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
+
+    # Initialize LayoutLM model
     model = model_class.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
@@ -734,16 +764,22 @@ def main():
 
     # Training
     if args.do_train:
-        print("tokenizer",tokenizer)
-        print("pad_token_label_id",pad_token_label_id)
-        print("labels",labels) 
-        train_dataset,_,_ = load_and_cache_examples(
+        print("tokenizer", tokenizer)
+        print("pad_token_label_id", pad_token_label_id)
+        print("labels", labels)
+
+        # LOAD and Cache Examples
+        train_dataset, _, _ = load_and_cache_examples(
             args, tokenizer, labels, pad_token_label_id, mode="train"
         )
+
+        # Train model
         global_step, tr_loss = train(
             args, train_dataset, model, tokenizer, labels, pad_token_label_id
         )
+
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+
     # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
         # Create output directory if needed
