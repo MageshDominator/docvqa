@@ -11,10 +11,3 @@ python create_dataset.py \
          "./dataset_downloaded/val/documents" \
          "./dataset_downloaded/val/val_v1.0.json" \
          "./dataset_processed/val/val_v1.0.json"
-
-# Testing Dataset
-python create_dataset.py \
-         "./dataset_downloaded/test/ocr_results" \
-         "./dataset_downloaded/test/documents" \
-         "./dataset_downloaded/test/test_v1.0.json" \
-         "./dataset_processed/test/test_v1.0.json"

@@ -1,0 +1,19 @@
+CUDA_VISIBLE_DEVICES=0 python run_docvqa.py \
+    --data_dir <data-folder> \
+    --model_type layoutlm \
+    --model_name_or_path <pretrained-model-path> \
+    --do_lower_case \
+    --max_seq_length 512 \
+    --do_train \
+    --num_train_epochs 15 \
+    --logging_steps 500 \
+    --evaluate_during_training \
+    --save_steps 500 \
+    --do_eval \
+    --output_dir  <data-folder>/<exp-folder> \
+    --per_gpu_train_batch_size 8 \
+    --overwrite_output_dir \
+    --cache_dir <data-folder>/models \
+    --skip_match_answers \
+    --val_json <train-output-json-path> \
+    --train_json <train-output-json-path>
