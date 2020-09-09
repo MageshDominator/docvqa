@@ -15,5 +15,5 @@ CUDA_VISIBLE_DEVICES=0 python run_docvqa.py \
     --overwrite_output_dir \
     --cache_dir ./data/models/ \
     --skip_match_answers \
-    --val_json ./dataset_processes/val/val_v1.0.json \
-    --train_json ./dataset_processes/train/train_v1.0.json
+    --val_json ./dataset_processed/val/val_v1.0.json \
+    --train_json ./dataset_processed/train/train_v1.0.json
